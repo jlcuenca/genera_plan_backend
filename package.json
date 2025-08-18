@@ -4,10 +4,11 @@
     "description": "Servidor de prueba para la app de plan de estudios",
     "main": "server.js",
     "scripts": {
-      "start": "node server.js"
+        "start": "node server.js"
     },
     "dependencies": {
-      "cors": "^2.8.5",
-      "express": "^4.19.2"
+        "cors": "^2.8.5",
+        "express": "^4.19.2",
+        "firebase-admin": "^13.4.0"
     }
-  }
+}
