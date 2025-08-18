@@ -1,11 +1,10 @@
 /*
 ================================================================================
-Backend con Node.js y Firebase Firestore.
+Backend con Node.js y Firebase Firestore
 
-- Este servidor se conecta a una base de datos en la nube (Firestore).
-- Reemplaza el uso del archivo local 'db.json'.
-- Está listo para ser desplegado en un servicio de hosting como Render.
-
+- CORRECCIÓN: Se ha añadido lógica para inicializar la base de datos
+  con datos por defecto si esta se encuentra vacía. Esto soluciona el
+  error 404 al cargar la aplicación por primera vez.
 ================================================================================
 */
 
@@ -14,11 +13,14 @@ const cors = require('cors');
 const admin = require('firebase-admin');
 
 // --- CONFIGURACIÓN DE FIREBASE ---
-
-// 1. Descarga tu archivo de credenciales JSON desde Firebase.
-// 2. Conviértelo a un string de una sola línea (puedes usar un minificador de JSON online).
-// 3. Pega ese string en la variable de entorno 'FIREBASE_CREDENTIALS' en tu servicio de hosting.
-const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+let serviceAccount;
+try {
+    // Esta línea lee las credenciales desde la variable de entorno en Render
+    serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+} catch (e) {
+    console.error('Error al parsear FIREBASE_CREDENTIALS. Asegúrate de que esté configurada correctamente en Render.', e);
+    process.exit(1);
+}
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -34,13 +36,54 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// --- Función para obtener los datos por defecto ---
+const getDefaultData = () => {
+  return {
+    nombre: "Plan de Estudios de Ganadería Sustentable",
+    facultad: "Ciencias Biológicas y Agropecuarias",
+    opcionProfesional: "Licenciatura en Ganadería Sustentable",
+    nivelEstudios: "Licenciatura",
+    tituloOtorga: "Licenciado(a) en Ganadería Sustentable",
+    periodo: "2025",
+    areaAcademica: "Ciencias Biológicas y Agropecuarias",
+    regionImparte: "Veracruz",
+    sedeImparte: "Facultad de Medicina Veterinaria y Zootecnia",
+    sistema: "Virtual",
+    totalCreditosPlan: 374,
+    totalCreditosGrado: 350,
+    modalidadEducativa: "Virtual",
+    estatus: "Aprobado",
+    fechaElaboracion: new Date().toISOString().split('T')[0],
+    areas: [
+      { 
+        nombre: 'Área de Formación Básica General (AFBG)', 
+        materias: [
+          { clave: 'AFBG01', nombre: 'Lectura y escritura de textos académicos', seriacion: null, acd: '', caracter: 'Ob', ht: 0, hp: 0, ho: 4, cr: 4, oe: 'O', rd: 'I', ma: 'CT', e: 'IeF', ca: 'Ob', af: 'AFB', aa: null, estatus: 'P' },
+          { clave: 'AFBG02', nombre: 'Lengua I', seriacion: null, acd: '', caracter: 'Ob', ht: 0, hp: 0, ho: 6, cr: 4, oe: 'O', rd: 'I', ma: 'T', e: 'IeF', ca: 'Ob', af: 'AFB', aa: null, estatus: 'P' },
+        ],
+        subAreas: []
+      },
+      { 
+        nombre: 'Área de Formación Básica de Iniciación a la Disciplina (AFBID)',
+        materias: [],
+        subAreas: []
+      },
+    ]
+  };
+};
+
+
 // --- Lógica de la API con Firestore ---
 
 app.get('/api/plan-de-estudios', async (req, res) => {
   try {
     const doc = await planDocRef.get();
     if (!doc.exists) {
-      return res.status(404).json({ message: 'Plan de estudios no encontrado.' });
+      console.log('Documento no encontrado. Creando con datos por defecto...');
+      const defaultData = getDefaultData();
+      await planDocRef.set(defaultData);
+      console.log('Documento creado exitosamente.');
+      return res.status(200).json(defaultData);
     }
     res.status(200).json(doc.data());
   } catch (error) {
@@ -55,7 +98,7 @@ app.put('/api/plan-de-estudios/full', async (req, res) => {
     if (!data) {
       return res.status(400).json({ message: 'No se recibieron datos.' });
     }
-    await planDocRef.set(data);
+    await planDocRef.set(data, { merge: true });
     res.status(200).json({ message: 'Plan de estudios actualizado exitosamente.' });
   } catch (error) {
     console.error("Error actualizando el plan:", error);
@@ -63,8 +106,18 @@ app.put('/api/plan-de-estudios/full', async (req, res) => {
   }
 });
 
-// Los demás endpoints (addMateria, updateMateria, etc.) se simplifican,
-// ya que el frontend ahora envía el plan completo para ser guardado.
+app.put('/api/plan-de-estudios', async (req, res) => {
+    try {
+        const updatedMetadata = req.body;
+        await planDocRef.set(updatedMetadata, { merge: true });
+        const doc = await planDocRef.get();
+        res.status(200).json(doc.data());
+    } catch (error) {
+        console.error("Error actualizando metadatos del plan:", error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+});
+
 
 // === Iniciar el servidor ===
 app.listen(port, () => {
