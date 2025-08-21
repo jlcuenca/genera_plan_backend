@@ -1,12 +1,13 @@
 /*
 ================================================================================
-Backend con Node.js y Firebase Firestore
+Backend con Node.js y Firebase Firestore para Múltiples Planes
 
-- CORRECCIÓN: Se ha añadido lógica para inicializar la base de datos
-  con datos por defecto si esta se encuentra vacía. Esto soluciona el
-  error 404 al cargar la aplicación por primera vez.
-- ACTUALIZACIÓN: Se han cargado los datos del plan de estudios de Economía
-  como los datos por defecto.
+- REFACTORIZACIÓN: Se han modificado los endpoints para aceptar un ID de plan
+  dinámico en la URL (ej. /api/plan-de-estudios/mi-plan-id).
+- LÓGICA MEJORADA: El endpoint GET ahora crea un nuevo plan con datos por
+  defecto si el ID solicitado no existe, en lugar de devolver un 404.
+- LÓGICA MEJORADA: El endpoint PUT ahora puede crear un nuevo documento si no
+  existe, o actualizar uno existente, usando el ID proporcionado.
 ================================================================================
 */
 
@@ -29,7 +30,6 @@ admin.initializeApp({
 });
 
 const db = admin.firestore();
-const planDocRef = db.collection('curriculum').doc('mainPlan');
 // ---------------------------------
 
 const app = express();
@@ -39,9 +39,9 @@ app.use(cors());
 app.use(express.json());
 
 // --- Función para obtener los datos por defecto ---
-const getDefaultData = () => {
+const getDefaultData = (planId) => {
   return {
-    nombre: "Plan de Estudios de Economía 2024",
+    nombre: `Plan de Estudios de Economía (${planId})`,
     facultad: "Económico - Administrativa",
     opcionProfesional: "Licenciatura en Economía",
     nivelEstudios: "Licenciatura",
@@ -104,118 +104,12 @@ const getDefaultData = () => {
       { 
         nombre: 'Área de Formación Disciplinar (AFD)',
         materias: [],
-        subAreas: [
-            {
-                nombre: 'Métodos cuantitativos',
-                materias: [
-                    { clave: 'AFD01', nombre: 'Análisis de Serie de Tiempo', seriacion: 'Econometría I', acd: 'Métodos cuantitativos', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD02', nombre: 'Cálculo II', seriacion: 'Cálculo I', acd: 'Métodos cuantitativos', caracter: 'Ob', ht: 3, hp: 3, ho: 0, cr: 9, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD05', nombre: 'Econometría I', seriacion: 'Estadística', acd: 'Métodos cuantitativos', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD06', nombre: 'Econometría II', seriacion: 'Econometría I', acd: 'Métodos cuantitativos', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD11', nombre: 'Estadística', seriacion: null, acd: 'Métodos cuantitativos', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD20', nombre: 'Modelos Dinámicos', seriacion: null, acd: 'Métodos cuantitativos', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                ]
-            },
-            {
-                nombre: 'Teoría económica',
-                materias: [
-                    { clave: 'AFD03', nombre: 'Crecimiento Económico', seriacion: null, acd: 'Teoría económica', caracter: 'Ob', ht: 3, hp: 3, ho: 0, cr: 9, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD07', nombre: 'Economía Internacional I', seriacion: 'Microeconomía III', acd: 'Teoría económica', caracter: 'Ob', ht: 3, hp: 3, ho: 0, cr: 9, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD08', nombre: 'Economía Internacional II', seriacion: null, acd: 'Teoría económica', caracter: 'Ob', ht: 3, hp: 3, ho: 0, cr: 9, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD14', nombre: 'Macroeconomía I', seriacion: null, acd: 'Teoría económica', caracter: 'Ob', ht: 4, hp: 2, ho: 0, cr: 10, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD15', nombre: 'Macroeconomía II', seriacion: null, acd: 'Teoría económica', caracter: 'Ob', ht: 4, hp: 2, ho: 0, cr: 10, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD16', nombre: 'Macroeconomía III', seriacion: 'Macroeconomía II', acd: 'Teoría económica', caracter: 'Ob', ht: 4, hp: 2, ho: 0, cr: 10, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD17', nombre: 'Microeconomía I', seriacion: 'Cálculo I', acd: 'Teoría económica', caracter: 'Ob', ht: 4, hp: 2, ho: 0, cr: 10, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD18', nombre: 'Microeconomía II', seriacion: 'Cálculo I', acd: 'Teoría económica', caracter: 'Ob', ht: 4, hp: 2, ho: 0, cr: 10, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD19', nombre: 'Microeconomía III', seriacion: 'Microeconomía II', acd: 'Teoría económica', caracter: 'Ob', ht: 3, hp: 3, ho: 0, cr: 9, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD21', nombre: 'Organización Industrial', seriacion: null, acd: 'Teoría económica', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                ]
-            },
-            {
-                nombre: 'Economía pública',
-                materias: [
-                    { clave: 'AFD04', nombre: 'Desarrollo Económico', seriacion: null, acd: 'Economía pública', caracter: 'Ob', ht: 3, hp: 3, ho: 0, cr: 9, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD12', nombre: 'Finanzas Públicas', seriacion: null, acd: 'Economía pública', caracter: 'Ob', ht: 3, hp: 3, ho: 0, cr: 9, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD22', nombre: 'Planeación, Programación y Presupuestación', seriacion: null, acd: 'Economía pública', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD23', nombre: 'Política Económica', seriacion: null, acd: 'Economía pública', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                ]
-            },
-            {
-                nombre: 'Historia Económica',
-                materias: [
-                    { clave: 'AFD09', nombre: 'Economía Mexicana I', seriacion: null, acd: 'Historia Económica', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD10', nombre: 'Economía Mexicana II', seriacion: 'Economía Mexicana I', acd: 'Historia Económica', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                ]
-            },
-            {
-                nombre: 'Empresa y vinculación',
-                materias: [
-                    { clave: 'AFD13', nombre: 'Formulación y Evaluación de Proyectos', seriacion: null, acd: 'Empresa y vinculación', caracter: 'Ob', ht: 2, hp: 2, ho: 0, cr: 6, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                    { clave: 'AFD24', nombre: 'Prácticas profesionales', seriacion: null, acd: 'Empresa y vinculación', caracter: 'Ob', ht: 2, hp: 2, ho: 180, cr: 12, oe: 'O', rd: 'I', ma: 'PP', e: 'M', ca: 'Ob', af: 'AFD', aa: 'M', estatus: 'P' },
-                ]
-            },
-            {
-                nombre: 'Investigación',
-                materias: [
-                    { clave: 'AFD25', nombre: 'Seminario de Investigación', seriacion: null, acd: 'Investigación', caracter: 'Ob', ht: 1, hp: 5, ho: 0, cr: 7, oe: 'O', rd: 'I', ma: 'S', e: 'IPA', ca: 'Ob', af: 'AFD', aa: 'P', estatus: 'P' },
-                ]
-            }
-        ]
+        subAreas: []
       },
       { 
         nombre: 'Área de Formación Terminal (AFT)',
         materias: [],
-        subAreas: [
-            {
-                nombre: 'General',
-                materias: [
-                    { clave: 'AFT01', nombre: 'Servicio social', seriacion: null, acd: 'Empresa y vinculación', caracter: 'Ob', ht: 0, hp: 4, ho: 0, cr: 12, oe: 'O', rd: 'I', ma: 'VC', e: 'M', ca: 'Ob', af: 'AFT', aa: 'M', estatus: 'P' },
-                    { clave: 'AFT02', nombre: 'Experiencia recepcional', seriacion: null, acd: 'Investigación', caracter: 'Ob', ht: 4, hp: 0, ho: 0, cr: 12, oe: 'O', rd: 'I', ma: 'I', e: 'IPA', ca: 'Ob', af: 'AFT', aa: 'M', estatus: 'P' },
-                    { clave: 'AFT03', nombre: 'Acreditación de la lengua', seriacion: null, acd: '', caracter: 'Ob', ht: 0, hp: 0, ho: 0, cr: 6, oe: null, rd: null, ma: null, e: null, ca: 'Ob', af: 'AFT', aa: 'P', estatus: 'P' },
-                ]
-            },
-            {
-                nombre: 'Métodos cuantitativos',
-                materias: [
-                    { clave: 'AFT04', nombre: 'Análisis estadístico con software', seriacion: null, acd: 'Métodos cuantitativos', caracter: 'Ob', ht: 2, hp: 2, ho: 0, cr: 6, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFT', aa: 'P', estatus: 'P' },
-                    { clave: 'AFT05', nombre: 'Análisis multivariado', seriacion: null, acd: 'Métodos cuantitativos', caracter: 'Op', ht: 2, hp: 2, ho: 0, cr: 6, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Op', af: 'AFT', aa: 'P', estatus: 'P' },
-                    { clave: 'AFT18', nombre: 'Matemáticas para economistas', seriacion: null, acd: 'Métodos cuantitativos', caracter: 'Op', ht: 2, hp: 2, ho: 0, cr: 6, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Op', af: 'AFT', aa: 'P', estatus: 'P' },
-                    { clave: 'AFT19', nombre: 'Teoría de juegos', seriacion: null, acd: 'Métodos cuantitativos', caracter: 'Op', ht: 2, hp: 2, ho: 0, cr: 6, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Op', af: 'AFT', aa: 'P', estatus: 'P' },
-                ]
-            },
-            {
-                nombre: 'Historia Económica',
-                materias: [
-                    { clave: 'AFT06', nombre: 'Demografía', seriacion: null, acd: 'Historia Económica', caracter: 'Op', ht: 2, hp: 2, ho: 0, cr: 6, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Op', af: 'AFT', aa: 'P', estatus: 'P' },
-                ]
-            },
-            {
-                nombre: 'Empresa y vinculación',
-                materias: [
-                    { clave: 'AFT07', nombre: 'Desarrollo de emprendedores', seriacion: null, acd: 'Empresa y vinculación', caracter: 'Op', ht: 2, hp: 2, ho: 0, cr: 6, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Op', af: 'AFT', aa: 'P', estatus: 'P' },
-                    { clave: 'AFT12', nombre: 'Economía gerencial', seriacion: null, acd: 'Empresa y vinculación', caracter: 'Op', ht: 2, hp: 2, ho: 0, cr: 6, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Op', af: 'AFT', aa: 'P', estatus: 'P' },
-                    { clave: 'AFT13', nombre: 'Economía de los mercados financieros', seriacion: null, acd: 'Empresa y vinculación', caracter: 'Op', ht: 2, hp: 2, ho: 0, cr: 6, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Op', af: 'AFT', aa: 'P', estatus: 'P' },
-                    { clave: 'AFT17', nombre: 'Matemáticas financieras y portafolios', seriacion: null, acd: 'Empresa y vinculación', caracter: 'Op', ht: 2, hp: 2, ho: 0, cr: 6, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Op', af: 'AFT', aa: 'P', estatus: 'P' },
-                ]
-            },
-            {
-                nombre: 'Economía pública',
-                materias: [
-                    { clave: 'AFT08', nombre: 'Diseño y evaluación de políticas públicas', seriacion: null, acd: 'Economía pública', caracter: 'Op', ht: 2, hp: 2, ho: 0, cr: 6, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Op', af: 'AFT', aa: 'P', estatus: 'P' },
-                    { clave: 'AFT15', nombre: 'Gerencia Pública y Gobernanza', seriacion: null, acd: 'Economía pública', caracter: 'Op', ht: 2, hp: 2, ho: 0, cr: 6, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Op', af: 'AFT', aa: 'P', estatus: 'P' },
-                    { clave: 'AFT16', nombre: 'Hacienda Municipal', seriacion: null, acd: 'Economía pública', caracter: 'Op', ht: 2, hp: 2, ho: 0, cr: 6, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Op', af: 'AFT', aa: 'P', estatus: 'P' },
-                ]
-            },
-            {
-                nombre: 'Economía aplicada',
-                materias: [
-                    { clave: 'AFT09', nombre: 'Economía agrícola', seriacion: null, acd: 'Economía aplicada', caracter: 'Op', ht: 2, hp: 2, ho: 0, cr: 6, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Op', af: 'AFT', aa: 'P', estatus: 'P' },
-                    { clave: 'AFT10', nombre: 'Economía ambiental', seriacion: null, acd: 'Economía aplicada', caracter: 'Op', ht: 2, hp: 2, ho: 0, cr: 6, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Op', af: 'AFT', aa: 'P', estatus: 'P' },
-                    { clave: 'AFT11', nombre: 'Economía de la salud', seriacion: null, acd: 'Economía aplicada', caracter: 'Op', ht: 2, hp: 2, ho: 0, cr: 6, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Op', af: 'AFT', aa: 'P', estatus: 'P' },
-                    { clave: 'AFT14', nombre: 'Economía regional', seriacion: null, acd: 'Economía aplicada', caracter: 'Op', ht: 2, hp: 2, ho: 0, cr: 6, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Op', af: 'AFT', aa: 'P', estatus: 'P' },
-                ]
-            }
-        ]
+        subAreas: []
       },
       { 
         nombre: 'Área de Formación de Elección Libre (AFEL)', 
@@ -228,50 +122,62 @@ const getDefaultData = () => {
   };
 };
 
-
 // --- Lógica de la API con Firestore ---
 
-app.get('/api/plan-de-estudios', async (req, res) => {
+/**
+ * Endpoint para obtener un plan de estudios por su ID.
+ * Si no existe, crea uno con datos por defecto.
+ * @param {string} planId - El ID del plan a obtener desde la URL.
+ */
+app.get('/api/plan-de-estudios/:planId', async (req, res) => {
   try {
+    const planId = req.params.planId;
+    if (!planId) {
+        return res.status(400).json({ message: 'El ID del plan es requerido.' });
+    }
+    const planDocRef = db.collection('curriculum').doc(planId);
     const doc = await planDocRef.get();
+
     if (!doc.exists) {
-      console.log('Documento no encontrado. Creando con datos por defecto...');
-      const defaultData = getDefaultData();
+      console.log(`Plan '${planId}' no encontrado. Creando con datos por defecto...`);
+      const defaultData = getDefaultData(planId);
       await planDocRef.set(defaultData);
-      console.log('Documento creado exitosamente.');
+      console.log('Documento por defecto creado exitosamente.');
       return res.status(200).json(defaultData);
     }
     res.status(200).json(doc.data());
   } catch (error) {
-    console.error("Error obteniendo el plan de estudios:", error);
+    console.error(`Error obteniendo el plan de estudios [${req.params.planId}]:`, error);
     res.status(500).json({ message: 'Error interno del servidor.' });
   }
 });
 
-app.put('/api/plan-de-estudios/full', async (req, res) => {
+/**
+ * Endpoint para crear o actualizar un plan de estudios por su ID.
+ * @param {string} planId - El ID del plan a guardar desde la URL.
+ * @param {object} data - El objeto completo del plan de estudios en el body.
+ */
+app.put('/api/plan-de-estudios/:planId', async (req, res) => {
   try {
+    const planId = req.params.planId;
     const { data } = req.body;
-    if (!data) {
-      return res.status(400).json({ message: 'No se recibieron datos.' });
+
+    if (!planId) {
+        return res.status(400).json({ message: 'El ID del plan es requerido.' });
     }
+    if (!data) {
+      return res.status(400).json({ message: 'No se recibieron datos para guardar.' });
+    }
+
+    const planDocRef = db.collection('curriculum').doc(planId);
+    // set con merge:true crea el documento si no existe, o lo actualiza si ya existe.
     await planDocRef.set(data, { merge: true });
-    res.status(200).json({ message: 'Plan de estudios actualizado exitosamente.' });
+
+    res.status(200).json({ message: `Plan [${planId}] guardado exitosamente.` });
   } catch (error) {
-    console.error("Error actualizando el plan:", error);
+    console.error(`Error actualizando el plan [${req.params.planId}]:`, error);
     res.status(500).json({ message: 'Error interno del servidor.' });
   }
-});
-
-app.put('/api/plan-de-estudios', async (req, res) => {
-    try {
-        const updatedMetadata = req.body;
-        await planDocRef.set(updatedMetadata, { merge: true });
-        const doc = await planDocRef.get();
-        res.status(200).json(doc.data());
-    } catch (error) {
-        console.error("Error actualizando metadatos del plan:", error);
-        res.status(500).json({ message: 'Error interno del servidor.' });
-    }
 });
 
 
