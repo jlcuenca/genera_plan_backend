@@ -5,9 +5,10 @@ Backend con Node.js y Firebase Firestore para Múltiples Planes
 - REFACTORIZACIÓN: Se han modificado los endpoints para aceptar un ID de plan
   dinámico en la URL (ej. /api/plan-de-estudios/mi-plan-id).
 - LÓGICA MEJORADA: El endpoint GET ahora crea un nuevo plan con datos por
-  defecto si el ID solicitado no existe, en lugar de devolver un 404.
-- LÓGICA MEJORADA: El endpoint PUT ahora puede crear un nuevo documento si no
-  existe, o actualizar uno existente, usando el ID proporcionado.
+  defecto si el ID solicitado no existe.
+- CORRECCIÓN DE ENTORNO: Se ha añadido una lógica dual para cargar las
+  credenciales de Firebase, permitiendo el funcionamiento tanto en el entorno
+  de producción (Render) como en un entorno de desarrollo local.
 ================================================================================
 */
 
@@ -17,12 +18,26 @@ const admin = require('firebase-admin');
 
 // --- CONFIGURACIÓN DE FIREBASE ---
 let serviceAccount;
-try {
-    // Esta línea lee las credenciales desde la variable de entorno en Render
-    serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
-} catch (e) {
-    console.error('Error al parsear FIREBASE_CREDENTIALS. Asegúrate de que esté configurada correctamente en Render.', e);
-    process.exit(1);
+
+// Lógica para cargar credenciales según el entorno
+// 1. Intenta cargar desde la variable de entorno (para producción en Render)
+if (process.env.FIREBASE_CREDENTIALS) {
+    try {
+        serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+    } catch (e) {
+        console.error('Error al parsear FIREBASE_CREDENTIALS. Asegúrate de que esté configurada correctamente en Render.', e);
+        process.exit(1);
+    }
+} else {
+    // 2. Si no existe, intenta cargar desde un archivo local (para desarrollo)
+    try {
+        serviceAccount = require('./serviceAccountKey.json');
+    } catch (e) {
+        console.error('Error al cargar el archivo "serviceAccountKey.json".');
+        console.error('Para correr el servidor localmente, necesitas crear este archivo en la raíz del backend.');
+        console.error('Obtén las credenciales desde tu proyecto de Firebase > Configuración del proyecto > Cuentas de servicio > Generar nueva clave privada.');
+        process.exit(1);
+    }
 }
 
 admin.initializeApp({
