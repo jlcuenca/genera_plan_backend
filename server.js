@@ -7,8 +7,9 @@ Backend con Node.js y Firebase Firestore para Múltiples Planes
 - LÓGICA MEJORADA: El endpoint GET ahora crea un nuevo plan con datos por
   defecto si el ID solicitado no existe.
 - CORRECCIÓN DE ENTORNO: Se ha añadido una lógica dual para cargar las
-  credenciales de Firebase, permitiendo el funcionamiento tanto en el entorno
-  de producción (Render) como en un entorno de desarrollo local.
+  credenciales de Firebase.
+- DEBUG: Se ha añadido logging detallado para diagnosticar problemas de
+  creación de documentos en el entorno de producción.
 ================================================================================
 */
 
@@ -145,24 +146,33 @@ const getDefaultData = (planId) => {
  * @param {string} planId - El ID del plan a obtener desde la URL.
  */
 app.get('/api/plan-de-estudios/:planId', async (req, res) => {
+  const planId = req.params.planId;
+  console.log(`[GET /api/plan-de-estudios/${planId}] Request received.`);
+
   try {
-    const planId = req.params.planId;
     if (!planId) {
+        console.log('[GET] Bad request: planId is missing.');
         return res.status(400).json({ message: 'El ID del plan es requerido.' });
     }
     const planDocRef = db.collection('curriculum').doc(planId);
     const doc = await planDocRef.get();
+    console.log(`[GET] Firestore document fetched for planId '${planId}'. Exists: ${doc.exists}`);
 
     if (!doc.exists) {
-      console.log(`Plan '${planId}' no encontrado. Creando con datos por defecto...`);
+      console.log(`[GET] Document for '${planId}' does not exist. Preparing to create with default data...`);
       const defaultData = getDefaultData(planId);
       await planDocRef.set(defaultData);
-      console.log('Documento por defecto creado exitosamente.');
-      return res.status(200).json(defaultData);
+      console.log(`[GET] Successfully wrote new document to Firestore for '${planId}'.`);
+      res.status(200).json(defaultData);
+      console.log(`[GET] Sent new default data to client for '${planId}'.`);
+      return;
     }
+    
+    console.log(`[GET] Document for '${planId}' exists. Sending data to client.`);
     res.status(200).json(doc.data());
+
   } catch (error) {
-    console.error(`Error obteniendo el plan de estudios [${req.params.planId}]:`, error);
+    console.error(`[GET] An error occurred in the GET endpoint for planId '${planId}':`, error);
     res.status(500).json({ message: 'Error interno del servidor.' });
   }
 });
@@ -173,24 +183,28 @@ app.get('/api/plan-de-estudios/:planId', async (req, res) => {
  * @param {object} data - El objeto completo del plan de estudios en el body.
  */
 app.put('/api/plan-de-estudios/:planId', async (req, res) => {
+  const planId = req.params.planId;
+  console.log(`[PUT /api/plan-de-estudios/${planId}] Request received.`);
+  
   try {
-    const planId = req.params.planId;
     const { data } = req.body;
 
     if (!planId) {
+        console.log('[PUT] Bad request: planId is missing.');
         return res.status(400).json({ message: 'El ID del plan es requerido.' });
     }
     if (!data) {
+      console.log('[PUT] Bad request: data is missing from the body.');
       return res.status(400).json({ message: 'No se recibieron datos para guardar.' });
     }
 
     const planDocRef = db.collection('curriculum').doc(planId);
-    // set con merge:true crea el documento si no existe, o lo actualiza si ya existe.
     await planDocRef.set(data, { merge: true });
+    console.log(`[PUT] Successfully wrote document to Firestore for '${planId}'.`);
 
     res.status(200).json({ message: `Plan [${planId}] guardado exitosamente.` });
   } catch (error) {
-    console.error(`Error actualizando el plan [${req.params.planId}]:`, error);
+    console.error(`[PUT] An error occurred in the PUT endpoint for planId '${planId}':`, error);
     res.status(500).json({ message: 'Error interno del servidor.' });
   }
 });
