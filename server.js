@@ -10,12 +10,14 @@ Backend con Node.js y Firebase Firestore para Múltiples Planes
   credenciales de Firebase.
 - DEBUG: Se ha añadido logging detallado para diagnosticar problemas de
   creación de documentos en el entorno de producción.
+- CAMBIO (ID ÚNICO): Se añade un _id único a cada materia por defecto.
 ================================================================================
 */
 
 const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
+const crypto = require('crypto'); // Añadido para generar UUIDs
 
 // --- CONFIGURACIÓN DE FIREBASE ---
 let serviceAccount;
@@ -55,6 +57,7 @@ app.use(cors());
 app.use(express.json());
 
 // --- Función para obtener los datos por defecto ---
+// CAMBIO: Se añade un _id único a cada materia usando crypto.randomUUID()
 const getDefaultData = (planId) => {
   return {
     nombre: `Plan de Estudios de Economía (${planId})`,
@@ -76,11 +79,11 @@ const getDefaultData = (planId) => {
       { 
         nombre: 'Área de Formación Básica General (AFBG)', 
         materias: [
-          { clave: 'AFBG01', nombre: 'Lectura y escritura de textos académicos', seriacion: null, acd: '', caracter: 'Ob', ht: 0, hp: 0, ho: 4, cr: 4, oe: 'O', rd: 'I', ma: 'CT', e: 'IeF', ca: 'Ob', af: 'AFB', aa: null, estatus: 'P' },
-          { clave: 'AFBG02', nombre: 'Lengua I', seriacion: null, acd: '', caracter: 'Ob', ht: 0, hp: 0, ho: 6, cr: 4, oe: 'O', rd: 'I', ma: 'T', e: 'IeF', ca: 'Ob', af: 'AFB', aa: null, estatus: 'P' },
-          { clave: 'AFBG03', nombre: 'Lengua II', seriacion: 'Lengua I', acd: '', caracter: 'Ob', ht: 0, hp: 0, ho: 6, cr: 4, oe: 'O', rd: 'I', ma: 'T', e: 'IeF', ca: 'Ob', af: 'AFB', aa: null, estatus: 'P' },
-          { clave: 'AFBG04', nombre: 'Literacidad digital', seriacion: null, acd: '', caracter: 'Ob', ht: 0, hp: 0, ho: 6, cr: 4, oe: 'O', rd: 'I', ma: 'T', e: 'IeF', ca: 'Ob', af: 'AFB', aa: null, estatus: 'P' },
-          { clave: 'AFBG05', nombre: 'Pensamiento crítico para la solución de problemas', seriacion: null, acd: '', caracter: 'Ob', ht: 0, hp: 0, ho: 4, cr: 4, oe: 'O', rd: 'I', ma: 'CT', e: 'IeF', ca: 'Ob', af: 'AFB', aa: null, estatus: 'P' },
+          { _id: crypto.randomUUID(), clave: 'AFBG01', nombre: 'Lectura y escritura de textos académicos', seriacion: null, acd: '', caracter: 'Ob', ht: 0, hp: 0, ho: 4, cr: 4, oe: 'O', rd: 'I', ma: 'CT', e: 'IeF', ca: 'Ob', af: 'AFB', aa: null, estatus: 'P' },
+          { _id: crypto.randomUUID(), clave: 'AFBG02', nombre: 'Lengua I', seriacion: null, acd: '', caracter: 'Ob', ht: 0, hp: 0, ho: 6, cr: 4, oe: 'O', rd: 'I', ma: 'T', e: 'IeF', ca: 'Ob', af: 'AFB', aa: null, estatus: 'P' },
+          { _id: crypto.randomUUID(), clave: 'AFBG03', nombre: 'Lengua II', seriacion: 'Lengua I', acd: '', caracter: 'Ob', ht: 0, hp: 0, ho: 6, cr: 4, oe: 'O', rd: 'I', ma: 'T', e: 'IeF', ca: 'Ob', af: 'AFB', aa: null, estatus: 'P' },
+          { _id: crypto.randomUUID(), clave: 'AFBG04', nombre: 'Literacidad digital', seriacion: null, acd: '', caracter: 'Ob', ht: 0, hp: 0, ho: 6, cr: 4, oe: 'O', rd: 'I', ma: 'T', e: 'IeF', ca: 'Ob', af: 'AFB', aa: null, estatus: 'P' },
+          { _id: crypto.randomUUID(), clave: 'AFBG05', nombre: 'Pensamiento crítico para la solución de problemas', seriacion: null, acd: '', caracter: 'Ob', ht: 0, hp: 0, ho: 4, cr: 4, oe: 'O', rd: 'I', ma: 'CT', e: 'IeF', ca: 'Ob', af: 'AFB', aa: null, estatus: 'P' },
         ],
         subAreas: []
       },
@@ -91,28 +94,28 @@ const getDefaultData = (planId) => {
           {
             nombre: 'Métodos cuantitativos',
             materias: [
-              { clave: 'AFBID01', nombre: 'Álgebra lineal', seriacion: null, acd: 'Métodos cuantitativos', caracter: 'Ob', ht: 3, hp: 3, ho: 0, cr: 9, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
-              { clave: 'AFBID02', nombre: 'Cálculo I', seriacion: null, acd: 'Métodos cuantitativos', caracter: 'Ob', ht: 3, hp: 3, ho: 0, cr: 9, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
-              { clave: 'AFBID07', nombre: 'Probabilidad', seriacion: null, acd: 'Métodos cuantitativos', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
+              { _id: crypto.randomUUID(), clave: 'AFBID01', nombre: 'Álgebra lineal', seriacion: null, acd: 'Métodos cuantitativos', caracter: 'Ob', ht: 3, hp: 3, ho: 0, cr: 9, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
+              { _id: crypto.randomUUID(), clave: 'AFBID02', nombre: 'Cálculo I', seriacion: null, acd: 'Métodos cuantitativos', caracter: 'Ob', ht: 3, hp: 3, ho: 0, cr: 9, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
+              { _id: crypto.randomUUID(), clave: 'AFBID07', nombre: 'Probabilidad', seriacion: null, acd: 'Métodos cuantitativos', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
             ]
           },
           {
             nombre: 'Historia Económica',
             materias: [
-              { clave: 'AFBID03', nombre: 'Historia Económica General', seriacion: null, acd: 'Historia Económica', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
+              { _id: crypto.randomUUID(), clave: 'AFBID03', nombre: 'Historia Económica General', seriacion: null, acd: 'Historia Económica', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
             ]
           },
           {
             nombre: 'Teoría económica',
             materias: [
-              { clave: 'AFBID04', nombre: 'Introducción a la Economía', seriacion: null, acd: 'Teoría económica', caracter: 'Ob', ht: 3, hp: 3, ho: 0, cr: 9, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
-              { clave: 'AFBID06', nombre: 'Historia del Pensamiento Económico', seriacion: null, acd: 'Teoría económica', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
+              { _id: crypto.randomUUID(), clave: 'AFBID04', nombre: 'Introducción a la Economía', seriacion: null, acd: 'Teoría económica', caracter: 'Ob', ht: 3, hp: 3, ho: 0, cr: 9, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
+              { _id: crypto.randomUUID(), clave: 'AFBID06', nombre: 'Historia del Pensamiento Económico', seriacion: null, acd: 'Teoría económica', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
             ]
           },
           {
             nombre: 'Investigación',
             materias: [
-              { clave: 'AFBID05', nombre: 'Técnicas de investigación', seriacion: null, acd: 'Investigación', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'O', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
+              { _id: crypto.randomUUID(), clave: 'AFBID05', nombre: 'Técnicas de investigación', seriacion: null, acd: 'Investigación', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'O', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
             ]
           }
         ]
@@ -130,7 +133,7 @@ const getDefaultData = (planId) => {
       { 
         nombre: 'Área de Formación de Elección Libre (AFEL)', 
         materias: [
-            { clave: 'AFEL01', nombre: 'Optativa de Elección Libre', seriacion: null, acd: '', caracter: 'Op', ht: 0, hp: 0, ho: 0, cr: 18, oe: null, rd: null, ma: null, e: null, ca: 'Op', af: 'AFEL', aa: null, estatus: 'P' },
+            { _id: crypto.randomUUID(), clave: 'AFEL01', nombre: 'Optativa de Elección Libre', seriacion: null, acd: '', caracter: 'Op', ht: 0, hp: 0, ho: 0, cr: 18, oe: null, rd: null, ma: null, e: null, ca: 'Op', af: 'AFEL', aa: null, estatus: 'P' },
         ],
         subAreas: []
       }
