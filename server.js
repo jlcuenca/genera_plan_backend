@@ -60,9 +60,9 @@ app.use(express.json());
 // CAMBIO: Se añade un _id único a cada materia usando crypto.randomUUID()
 const getDefaultData = (planId) => {
   return {
-    nombre: `Plan de Estudios de Economía (${planId})`,
+    nombre: `Plan de Estudios (${planId})`,
     facultad: "Económico - Administrativa",
-    opcionProfesional: "Licenciatura en Economía",
+    opcionProfesional: `Licenciatura en (${planId})`,
     nivelEstudios: "Licenciatura",
     tituloOtorga: "Licenciado(a) en Economía",
     periodo: "2024",
@@ -89,35 +89,12 @@ const getDefaultData = (planId) => {
       },
       { 
         nombre: 'Área de Formación Básica de Iniciación a la Disciplina (AFBID)',
-        materias: [],
-        subAreas: [
-          {
-            nombre: 'Métodos cuantitativos',
             materias: [
               { _id: crypto.randomUUID(), clave: 'AFBID01', nombre: 'Álgebra lineal', seriacion: null, acd: 'Métodos cuantitativos', caracter: 'Ob', ht: 3, hp: 3, ho: 0, cr: 9, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
               { _id: crypto.randomUUID(), clave: 'AFBID02', nombre: 'Cálculo I', seriacion: null, acd: 'Métodos cuantitativos', caracter: 'Ob', ht: 3, hp: 3, ho: 0, cr: 9, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
               { _id: crypto.randomUUID(), clave: 'AFBID07', nombre: 'Probabilidad', seriacion: null, acd: 'Métodos cuantitativos', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
-            ]
-          },
-          {
-            nombre: 'Historia Económica',
-            materias: [
-              { _id: crypto.randomUUID(), clave: 'AFBID03', nombre: 'Historia Económica General', seriacion: null, acd: 'Historia Económica', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
-            ]
-          },
-          {
-            nombre: 'Teoría económica',
-            materias: [
-              { _id: crypto.randomUUID(), clave: 'AFBID04', nombre: 'Introducción a la Economía', seriacion: null, acd: 'Teoría económica', caracter: 'Ob', ht: 3, hp: 3, ho: 0, cr: 9, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
-              { _id: crypto.randomUUID(), clave: 'AFBID06', nombre: 'Historia del Pensamiento Económico', seriacion: null, acd: 'Teoría económica', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'T', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
-            ]
-          },
-          {
-            nombre: 'Investigación',
-            materias: [
-              { _id: crypto.randomUUID(), clave: 'AFBID05', nombre: 'Técnicas de investigación', seriacion: null, acd: 'Investigación', caracter: 'Ob', ht: 2, hp: 4, ho: 0, cr: 8, oe: 'O', rd: 'I', ma: 'CT', e: 'IPA', ca: 'Ob', af: 'AFB', aa: 'P', estatus: 'P' },
-            ]
-          }
+            ],
+        subAreas: [
         ]
       },
       { 
